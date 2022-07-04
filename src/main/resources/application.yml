@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: test-lock-process
+  redis:
+    redisson:
+      file: classpath:redisson-single-dev-json.json
+server:
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  port: 666
+  shutdown: graceful
+logging:
+  file:
+    name: logs/test-lock-process.log
+  level:
+    org.redisson: debug
+springdoc:
+  swagger-ui:
+    disable-swagger-default-url: true
+    path: /lock-process-service.html
