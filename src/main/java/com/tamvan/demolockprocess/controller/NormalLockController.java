@@ -3,7 +3,6 @@ package com.tamvan.demolockprocess.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,39 +10,33 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;;
 
 @RestController
-@RequestMapping("/lock-test")
+@RequestMapping("/normal-lock-test")
 @RequiredArgsConstructor
 @Slf4j
-public class LockController {
-
-    private final RedissonClient redissonClient;
-    String lockKey = "tamvan";
+public class NormalLockController {
 
     @GetMapping("/lock/execute")
     public HttpEntity<String> testLock() {
-        String message = "Tegar Tamvan Lock Biasa.";
+        String message = "Tegar Tamvan Normal Lock Biasa.";
         HttpStatus httpStatus = HttpStatus.OK;
-        RLock lock = redissonClient.getLock(lockKey);
         Instant start = Instant.now();
+        Lock queueLock = new ReentrantLock();
         try {
-            log.info("Nyoba kunci");
-            lock.lock(20000, TimeUnit.MILLISECONDS);
-            log.info("Terkunci");
+            queueLock.lock();
             Thread.sleep(10000);
         } catch (Exception e) {
             log.error("Error : " + e);
-            message = "Tegar Tamvan Lock Biasa. Error.";
+            message = "Tegar Tamvan Normal Lock Biasa. Error.";
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         } finally {
-            if (lock != null && lock.isLocked() && lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
+            queueLock.unlock();
         }
         Instant finish = Instant.now();
         long timeElapsed = Duration.between(start, finish).toMillis();
@@ -53,14 +46,14 @@ public class LockController {
     }
 
     @GetMapping("/try-lock/execute")
-    public HttpEntity<String> testTryLock(){
-        String message = "Tegar Tamvan Try Lock.";
+    public HttpEntity<String> testTryLock() {
+        String message = "Tegar Tamvan Normal Try Lock Biasa.";
         HttpStatus httpStatus = HttpStatus.OK;
-        RLock lock = redissonClient.getLock(lockKey);
         Instant start = Instant.now();
+        Lock queueLock = new ReentrantLock();
         try {
-            boolean lockedSucccess = lock.tryLock(0, 20000, TimeUnit.MILLISECONDS);
-            if(!lockedSucccess){
+            boolean lockedSuccess = queueLock.tryLock(20000, TimeUnit.MILLISECONDS);
+            if(!lockedSuccess){
                 message = "Tegar Tamvan Try Lock. Locked.";
                 httpStatus = HttpStatus.CONFLICT;
             }else{
@@ -68,16 +61,15 @@ public class LockController {
             }
         } catch (Exception e) {
             log.error("Error : " + e);
-            message = "Tegar Tamvan Try Lock. Error.";
+            message = "Tegar Tamvan Normal Try Lock Biasa. Error.";
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         } finally {
-            if (lock != null && lock.isLocked() && lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
+            queueLock.unlock();
         }
         Instant finish = Instant.now();
         long timeElapsed = Duration.between(start, finish).toMillis();
         message = message + " Duration : " + timeElapsed + " ms";
+
         return new ResponseEntity<>(message, httpStatus);
     }
 }
